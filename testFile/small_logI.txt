@@ -1,0 +1,2 @@
+Log entry 1: [INFO] This is a sample log message.
+
