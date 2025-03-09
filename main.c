@@ -1,85 +1,73 @@
+/*
+    KNOWN BUGS:
+            1: it can't find if there is a line smaller than 2 character
+            2: when there is duplication when printing out the line if there are multiple search words present
+            
+*/
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 #include "queue.h"
 
-size_t searchStrLen(int args, const char * arg[]);
+#define BUFF 1024
+void printQueue(struct que *queue, FILE * fp);
 
 int main(const int args, const char* argv[]){
-    if (args==1){
-        printf("Wrong format. Please try again.");
-        exit(1); 
-    }
-    FILE * fp = fopen(argv[1],"r+");
+
+    struct que queue; 
+    innitQueue(&queue);
+
+    FILE * fp = fopen(argv[1],"rb");
     if(fp==NULL){
-        printf("Couldn't open file");
+        printf("Couldn't open file or argument incorrect. ./main <file> <argument(s)>\n\tEG: ./main ./yo/hi.txt test 1");
         fclose(fp);
         exit(1);
     }
 
-    struct que queue; // Stores end of maching character
-    // struct que queueStart; // Stores start of the line where maching character is found
-    innitQueue(&queue);
-    // innitQueue(&queueStart);
+    char *line=(char *)malloc(sizeof(char)*BUFF);
+    char *temp;
     
-    char *word=(char *)malloc(sizeof(char)*searchStrLen(args,argv));
     for(int i=2;i<args;i++){
-        while(fscanf(fp," %s",word)!=EOF){
-            if(strcmp(argv[i],word)==0){
-                enqueue(&queue,ftell(fp));
+        while(fgets(line,BUFF,fp)!=NULL){ // takes the whole line
+        temp=strtok(line," ");
+            while(temp!=NULL){ // takes a word from a the line
+                if(strcmp(argv[i],temp)==0){
+                    if(isfull(&queue)){
+                        printQueue(&queue,fp);
+                    }
+                    enqueue(&queue,ftell(fp)-2); // fgets scans until the cursor points to first character of another line so we go back 2 to go back to first line. if it was -1, cursor would point to new line.
+                    // BUG 1
+                    break;
+                }
+                temp=strtok(NULL," ");
             }
         }
+        rewind(fp);
     }
-    //asd
-    //xxx.xxxxxxx.xxxxxxx\n asd sadfasdf asdfds asds asdfasdf asdf
-    char ch;
-    // fseek(fp,0,SEEK_END);
-    // const long endCur=ftell(fp);
-    while(!isempty(&queue)){ // until the whole queue is empty
-        fseek(fp,dequeue(&queue),SEEK_SET);
-        while((ch=fgetc(fp))!='\n'){ // moves cursur backward until it encounters new line
-            if((ftell(fp)<=1)){
-                rewind(fp);
-                ch=fgetc(fp);
-                break;
-            }else{
-                fseek(fp,-2,SEEK_CUR);
-                ch=fgetc(fp);
-            }
-        }
-        do{
-            printf("%c",ch);
-            ch=fgetc(fp);
-        }while(ch!='\n'&&ch!=EOF);
-        // if(!(ftell(fp)+1>=endCur)){
-        //     enqueue(&queueStart,ftell(fp)+1);
-        // }else if(ftell(fp)==0){
-        //     enqueue(&queueStart,ftell(fp));
-        // }else{
-        // }
-        // enqueue(&queueStart,ftell(fp));
-    }
-    // while(!isempty(&queueStart)){ // prints the character until while line is printed
-    //     fseek(fp,dequeue(&queueStart),SEEK_SET);
-    //     do{
-    //         printf("%c",ch);
-    //         ch=fgetc(fp);
-    //     }while(ch!='\n'&&ch!=EOF);
-    //     printf("\n");
-    // }
-
+    printQueue(&queue,fp);
     fclose(fp);
-    free(word);
-    
+    free(line);
     return 0;
 }
 
-size_t searchStrLen(int args, const char * arg[]){
-    size_t num=0;
-    for (int i = 2;i<args; i++)
-    {
-        num=num+strlen(arg[i]);
+void printQueue(struct que *queue, FILE * fp){
+    char *line=(char *)malloc(sizeof(char)*BUFF);
+    char ch;
+    while(!isempty(queue)){
+        fseek(fp,dequeue(queue),SEEK_SET);
+        while((ch=fgetc(fp))!='\n'){ // moves cursur backward until it encounters new line
+            if((ftell(fp)<=1)){
+                rewind(fp);
+                break;
+            }else{
+                fseek(fp,-2,SEEK_CUR);
+            }
+        }
+        fgets(line,BUFF,fp);
+        printf("%s\n",line);
     }
-    return num;
+    free(line);
 }

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX 1024
+#define MAX 64
 
 struct que{
     long array[MAX];
