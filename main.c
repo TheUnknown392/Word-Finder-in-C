@@ -1,6 +1,6 @@
 /*
     KNOWN BUGS:
-            1: it can't find if there is a line smaller than 2 character
+            1: it can't find if there is a line smaller than 2 character - fixed
             2: when there is duplication when printing out the line if there are multiple search words present
             
 */
@@ -27,22 +27,23 @@ int main(const int args, const char* argv[]){
         exit(1);
     }
 
+
     char *line=(char *)malloc(sizeof(char)*BUFF);
     char *temp;
+
     
     for(int i=2;i<args;i++){
         while(fgets(line,BUFF,fp)!=NULL){ // takes the whole line
-        temp=strtok(line," ");
+        temp=strtok(line," \r\n");
             while(temp!=NULL){ // takes a word from a the line
                 if(strcmp(argv[i],temp)==0){
                     if(isfull(&queue)){
                         printQueue(&queue,fp);
                     }
                     enqueue(&queue,ftell(fp)-2); // fgets scans until the cursor points to first character of another line so we go back 2 to go back to first line. if it was -1, cursor would point to new line.
-                    // BUG 1
                     break;
                 }
-                temp=strtok(NULL," ");
+                temp=strtok(NULL," \r\n"); // ignores the carriage return and new line when strtok gets those too by reading the string before new line.
             }
         }
         rewind(fp);
