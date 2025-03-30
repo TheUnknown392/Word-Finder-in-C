@@ -1,6 +1,5 @@
 /*
     KNOWN BUGS:
-            1: it can't find if there is a line smaller than 2 character - fixed
             2: when there is duplication when printing out the line if there are multiple search words present
             
 */
@@ -9,8 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
-#include "queue.h"
+#include "./queue/queue.h"
+#include "./dynamic array/da.h"
 
 #define BUFF 1024
 void printQueue(struct que *queue, FILE * fp);
