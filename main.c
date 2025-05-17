@@ -1,7 +1,9 @@
 /*
     KNOWN BUGS/annoyance:
             2: (fixed) when there is duplication when printing out the line if there are multiple search words present
-            3: don't like how I have to free.
+            3: (fixed) don't like how I have to free.
+            4: still don't like how it searches for same words
+	    5: I cannot search for a word that contains any character defined in ESCAPE. eg: i can't find for [info] but i can for info in test log files.
             
 */
 
@@ -14,8 +16,8 @@
 
 #define BUFF 1024
 #define ESCAPE " \r\n,.[]{}():;'"
-void printQueue(struct que *queue, FILE * fp);
-char * stringLower(const char *str);
+void printQueue(struct que *queue,struct que * savedLine, FILE * fp);
+int stringCompair(const char *ch,const char *str);
 
 int main(const int args, const char* argv[]){
 
@@ -27,6 +29,9 @@ int main(const int args, const char* argv[]){
     struct que queue; 
     innitQueue(&queue);
 
+    struct que saveLine;
+    innitQueue(&saveLine);
+
     FILE * fp = fopen(argv[1],"rb");
     if(fp==NULL){
         printf("Couldn't open file or argument incorrect. ./main <file> <argument(s)>\n\tEG: ./main ./yo/hi.txt test 1");
@@ -37,40 +42,35 @@ int main(const int args, const char* argv[]){
     char *line=(char *)malloc(sizeof(char)*BUFF);
     char *temp;
     
+    size_t lineNo=0;
     while(fgets(line,BUFF,fp)!=NULL){ // takes the whole line
+        ++lineNo;
         int inserted = 0;
         temp=strtok(line,ESCAPE);
         while(temp!=NULL){ // takes a word from a the line
             for(int i=2;i<args;i++){
-                char *freeA=stringLower(argv[i]);
-                char *freeB=stringLower(temp);
-                if(strcmp(freeA,freeB)==0){
-                    free(freeA);
-                    free(freeB);
+                if(stringCompair(argv[i],temp)){
                     if(isfull(&queue)){
-                        printQueue(&queue,fp);
+                        printQueue(&queue,&saveLine,fp);
                     }
                     enqueue(&queue,ftell(fp)-2); // fgets scans until the cursor points to first character of another line so we go back 2 to go back to first line. if it was -1, cursor would point to new line.
+                    enqueue(&saveLine,lineNo);
                     inserted = 1;
                     break;
                 }
-                free(freeA);
-                free(freeB);
             }
-            if(inserted){
-                break;            
-            }
+            if(inserted) break;            
             temp=strtok(NULL,ESCAPE); // ignores the carriage return and new line when strtok gets those too by reading the string before new line.
         }
     }
 
-    printQueue(&queue,fp);
+    printQueue(&queue,&saveLine,fp);
     fclose(fp);
     free(line);
     return 0;
 }
 
-void printQueue(struct que *queue, FILE * fp){
+void printQueue(struct que *queue,struct que *savedLine, FILE * fp){
     char *line=(char *)malloc(sizeof(char)*BUFF);
     char ch;
     while(!isempty(queue)){
@@ -84,19 +84,18 @@ void printQueue(struct que *queue, FILE * fp){
             }
         }
         fgets(line,BUFF,fp);
-        printf("%s\n",line);
+        printf("%zu:\t%s",dequeue(savedLine),line);
     }
     free(line);
 }
 
-char * stringLower(const char *ch){
+int stringCompair(const char *arg,const char *cmp){
     int i=0;
-    char *str=(char *)malloc(strlen(ch)+1);
-    if(str==NULL) exit(1);
-    strcpy(str,ch);
-    while(str[i]!=(char)'\0'){
-        str[i]=tolower(str[i]);
+    while((arg[i]!=(char)'\0')&&(cmp[i]!=(char)'\0')){
+        if(!(tolower(arg[i])==tolower(cmp[i]))){
+            return 0;
+        }
         i++;
     }
-    return str;
+    return 1;
 }
