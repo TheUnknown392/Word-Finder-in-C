@@ -1,9 +1,9 @@
 /*
     KNOWN BUGS/annoyance:
             2: (fixed) when there is duplication when printing out the line if there are multiple search words present
-            3: (fixed) don't like how I have to free.
-            4: still don't like how it searches for same words
-	    5: I cannot search for a word that contains any character defined in ESCAPE. eg: i can't find for [info] but i can for info in test log files.
+            3: don't like how I have to free.
+            4: don't like how I compair strings
+            5: it doesn't work when I do [info] for example
             
 */
 
@@ -16,8 +16,8 @@
 
 #define BUFF 1024
 #define ESCAPE " \r\n,.[]{}():;'"
-void printQueue(struct que *queue,struct que * savedLine, FILE * fp);
-int stringCompair(const char *ch,const char *str);
+void printQueue(struct que *queue,struct que *lineNumber, FILE * fp);
+char * stringLower(const char *str);
 
 int main(const int args, const char* argv[]){
 
@@ -29,9 +29,9 @@ int main(const int args, const char* argv[]){
     struct que queue; 
     innitQueue(&queue);
 
-    struct que saveLine;
-    innitQueue(&saveLine);
-
+    struct que lineNumber; 
+    innitQueue(&lineNumber);
+    
     FILE * fp = fopen(argv[1],"rb");
     if(fp==NULL){
         printf("Couldn't open file or argument incorrect. ./main <file> <argument(s)>\n\tEG: ./main ./yo/hi.txt test 1");
@@ -41,20 +41,19 @@ int main(const int args, const char* argv[]){
     
     char *line=(char *)malloc(sizeof(char)*BUFF);
     char *temp;
-    
     size_t lineNo=0;
     while(fgets(line,BUFF,fp)!=NULL){ // takes the whole line
-        ++lineNo;
+        lineNo++;
         int inserted = 0;
         temp=strtok(line,ESCAPE);
         while(temp!=NULL){ // takes a word from a the line
             for(int i=2;i<args;i++){
                 if(stringCompair(argv[i],temp)){
                     if(isfull(&queue)){
-                        printQueue(&queue,&saveLine,fp);
+                        printQueue(&queue,&lineNumber,fp);
                     }
                     enqueue(&queue,ftell(fp)-2); // fgets scans until the cursor points to first character of another line so we go back 2 to go back to first line. if it was -1, cursor would point to new line.
-                    enqueue(&saveLine,lineNo);
+                    enqueue(&lineNumber,lineNo);
                     inserted = 1;
                     break;
                 }
@@ -64,15 +63,16 @@ int main(const int args, const char* argv[]){
         }
     }
 
-    printQueue(&queue,&saveLine,fp);
+    printQueue(&queue,&lineNumber,fp);
     fclose(fp);
     free(line);
     return 0;
 }
 
-void printQueue(struct que *queue,struct que *savedLine, FILE * fp){
+void printQueue(struct que *queue,struct que *lineNumber, FILE * fp){
     char *line=(char *)malloc(sizeof(char)*BUFF);
     char ch;
+    long reset = ftell(fp);
     while(!isempty(queue)){
         fseek(fp,dequeue(queue),SEEK_SET);
         while((ch=fgetc(fp))!='\n'){ // moves cursur backward until it encounters new line
@@ -84,8 +84,9 @@ void printQueue(struct que *queue,struct que *savedLine, FILE * fp){
             }
         }
         fgets(line,BUFF,fp);
-        printf("%zu:\t%s",dequeue(savedLine),line);
+        printf("%zu:\t%s\n",dequeue(lineNumber),line);
     }
+    fseek(fp,reset,SEEK_SET);
     free(line);
 }
 
