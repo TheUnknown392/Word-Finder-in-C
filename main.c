@@ -68,7 +68,7 @@ int main(const int args, const char* argv[]){
             temp=strtok(NULL,ESCAPE); // ignores the carriage return and new line when strtok gets those too by reading the string before new line.
         }
     }
-
+    
     printQueue(&queue,&lineNumbers,fp);
     fclose(fp);
     free(line);
@@ -102,8 +102,21 @@ char * stringLower(const char *ch){
     if(str==NULL) exit(1);
     strcpy(str,ch);
     while(str[i]!=(char)'\0'){
-        str[i]=tolower(str[i]);
+        for(size_t j=0;j<(sizeof(ESCAPE)/sizeof(ESCAPE[0]))-1;j++){
+            if(str[i]!=ESCAPE[j]){
+                str[i]=tolower(str[i]);
+            }else{
+                // shift left and over write anything defined in ESCAPE
+                int k=i;
+                while(str[k]!='\0'){
+                    str[k]=str[k+1];
+                    k++;
+                }
+                str[k]='\0';
+            }
+        }
         i++;
     }
+    str[i]='\0';
     return str;
 }
